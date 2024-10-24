@@ -29,7 +29,7 @@ export function UserSidebar() {
     if (loading) return <div>Loading...</div>; // Affichage pendant le chargement
 
     return (
-        <Card className="h-screen w-60 p-4 shadow-lg flex flex-col items-center">
+        <Card className="fixed top-0 right-0 h-full w-60 p-4 shadow-lg flex flex-col items-center">
             <UserCircleIcon className="h-24 w-24 text-blue-gray-600 mb-4" /> {/* Icône de profil */}
             <Typography className="text-lg font-semibold text-center">
                 {user?.name || "Nom de l'utilisateur"}

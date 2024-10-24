@@ -38,34 +38,35 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
-    console.log('data:',formData)
+    console.log('data:', formData);
     try {
-      // Obtenez le cookie CSRF avant d'envoyer la requête
-      await axios.get('http://localhost:8000/sanctum/csrf-cookie', { withCredentials: true });
-  
-      // Ensuite, envoyez la requête de connexion
-      const response = await axios.post('http://localhost:8000/api/login', formData, { withCredentials: true });
-  
-      if (response.data.token) {
-        const userEmail = response.data.user.email;
-  
-        // Limiter les connexions aux seuls admin1 et david.baehler03@gmail.com
-        
-          // Stockez toujours le token dans localStorage
-          localStorage.setItem('token', response.data.token);
-          
-          setShowModal(true);
-          setTimeout(() => {
-            nav("/home");
-          }, 2000);
-        
-      } else {
-        setError('Erreur de connexion : token manquant.');
-      }
+        // Obtenez le cookie CSRF avant d'envoyer la requête
+        await axios.get('http://localhost:8000/sanctum/csrf-cookie', { withCredentials: true });
+
+        // Ensuite, envoyez la requête de connexion
+        const response = await axios.post('http://localhost:8000/api/login', formData, { withCredentials: true });
+
+        if (response.data.token) {
+            const userEmail = response.data.user.email;
+
+            // Ajoutez ceci pour stocker l'ID utilisateur
+            localStorage.setItem('userId', response.data.user.id); // Stocke l'ID utilisateur
+
+            // Limiter les connexions aux seuls admin1 et david.baehler03@gmail.com
+            localStorage.setItem('token', response.data.token);
+            
+            setShowModal(true);
+            setTimeout(() => {
+                nav("/home");
+            }, 2000);
+        } else {
+            setError('Erreur de connexion : token manquant.');
+        }
     } catch (err) {
-      setError(err.response?.data?.error || 'Une erreur s\'est produite. Veuillez réessayer.');
+        setError(err.response?.data?.error || 'Une erreur s\'est produite. Veuillez réessayer.');
     }
-  };
+};
+
 
   return (
     <div className="flex items-center justify-center w-full h-screen m-0 bg-gray-100">

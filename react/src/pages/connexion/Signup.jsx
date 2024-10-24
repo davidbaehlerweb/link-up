@@ -1,20 +1,21 @@
 import React, { useEffect, useState } from "react";
 import axios from 'axios';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 const Signup = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
-    password_confirmation: ''
+    password_confirmation: '',
+    profile_image: null, // Initialise à null
   });
 
   const nav = useNavigate();
   const [error, setError] = useState(null);
   const [emailError, setEmailError] = useState(null);
-  const [showModal, setShowModal] = useState(false); // État pour le modal
-  const [timeoutId, setTimeoutId] = useState(null); // Pour gérer le délai de vérification de l'email
+  const [showModal, setShowModal] = useState(false);
+  const [timeoutId, setTimeoutId] = useState(null);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -33,7 +34,7 @@ const Signup = () => {
 
     if (name === 'email') {
       setEmailError(null);
-      clearTimeout(timeoutId); // Clear existing timeout
+      clearTimeout(timeoutId);
 
       const newTimeoutId = setTimeout(() => {
         validateEmail(value);
@@ -57,7 +58,6 @@ const Signup = () => {
 
   const checkEmailExists = async (email) => {
     try {
-      console.log('Email to check:', email); // Ajoutez ceci
       const response = await axios.post('http://localhost:8000/api/check-email', { email });
       if (response.data.available === false) {
         setEmailError('Cet email existe déjà');
@@ -65,13 +65,11 @@ const Signup = () => {
         setEmailError('Email valide');
       }
     } catch (err) {
-      // Gestion des erreurs (facultatif)
-      console.error(err.response ? err.response.data : err); // Affichez l'erreur
+      console.error(err.response ? err.response.data : err);
     }
   };
 
   const handleSubmit = async (e) => {
-    console.log('form data: ', formData);
     e.preventDefault();
     setError(null);
     validateEmail(formData.email);
@@ -86,8 +84,22 @@ const Signup = () => {
       return;
     }
 
+    // Utiliser FormData pour envoyer les données
+    const data = new FormData();
+    data.append('name', formData.name);
+    data.append('email', formData.email);
+    data.append('password', formData.password);
+    data.append('password_confirmation', formData.password_confirmation);
+    if (formData.profile_image) {
+      data.append('profile_image', formData.profile_image); // Ajout de l'image
+    }
+
     try {
-      const response = await axios.post('http://localhost:8000/api/register', formData);
+      const response = await axios.post('http://localhost:8000/api/register', data, {
+        headers: {
+          'Content-Type': 'multipart/form-data', // Important pour l'upload d'images
+        },
+      });
       setShowModal(true);
       setTimeout(() => {
         nav("/");
@@ -122,10 +134,6 @@ const Signup = () => {
       <form onSubmit={handleSubmit} className="flex flex-col w-full max-w-md text-center bg-white rounded-3xl p-8 shadow-lg">
         <h3 className="mb-3 text-4xl font-extrabold text-gray-900">Sign Up</h3>
         <p className="mb-4 text-gray-700">Enter informations</p>
-        <a className="flex items-center justify-center w-full py-4 mb-6 text-sm font-medium transition duration-300 rounded-2xl text-gray-900 bg-gray-300 hover:bg-gray-400 focus:ring-4 focus:ring-gray-300">
-          <img className="h-5 mr-2" src="https://raw.githubusercontent.com/Loopple/loopple-public-assets/main/motion-tailwind/img/logos/logo-google.png" alt="" />
-          Sign in with Google
-        </a>
         <div className="flex items-center mb-3">
           <hr className="h-0 border-b border-solid border-gray-500 grow" />
           <p className="mx-4 text-gray-600">or</p>
@@ -134,7 +142,7 @@ const Signup = () => {
         <label htmlFor="name" className="mb-2 text-sm text-start text-gray-900">Name*</label>
         <input
           id="name"
-          name="name" // Ajout de l'attribut name
+          name="name"
           type="text"
           placeholder="Name"
           value={formData.name}
@@ -144,7 +152,7 @@ const Signup = () => {
         <label htmlFor="email" className="mb-2 text-sm text-start text-gray-900">Email*</label>
         <input
           id="email"
-          name="email" // Ajout de l'attribut name
+          name="email"
           type="email"
           value={formData.email}
           onChange={handleChange}
@@ -152,7 +160,6 @@ const Signup = () => {
           placeholder="mail@loopple.com"
           className="flex items-center w-full px-5 py-4 mb-4 text-sm font-medium outline-none focus:bg-gray-400 placeholder:text-gray-700 bg-gray-200 text-gray-900 rounded-2xl" />
 
-        {/* Affichage du message d'erreur ou de succès */}
         {emailError && (
           <div className={`text-sm mt-2 ${emailError === 'Cet email existe déjà' ? 'text-red-500' : 'text-green-500'}`}>
             {emailError}
@@ -162,7 +169,7 @@ const Signup = () => {
         <label htmlFor="password" className="mb-2 text-sm text-start text-gray-900">Password*</label>
         <input
           id="password"
-          name="password" // Ajout de l'attribut name
+          name="password"
           type="password"
           value={formData.password}
           onChange={handleChange}
@@ -172,14 +179,24 @@ const Signup = () => {
         <label htmlFor="confirm_password" className="mb-2 text-sm text-start text-gray-900">Confirm password*</label>
         <input
           id="confirm_password"
-          name="password_confirmation" // Ajout de l'attribut name
+          name="password_confirmation"
           type="password"
           value={formData.password_confirmation}
           onChange={handleChange}
           placeholder="Confirm password"
           className="flex items-center w-full px-5 py-4 mb-4 text-sm font-medium outline-none focus:bg-gray-400 placeholder:text-gray-700 bg-gray-200 text-gray-900 rounded-2xl" />
 
-        <button type="submit" className="w-full px-6 py-5 mb-5 text-sm font-bold leading-none text-white transition duration-300 rounded-2xl hover:bg-black focus:ring-4 focus:ring-black bg-black">Sign In</button>
+        <label htmlFor="profile_image" className="mb-2 text-sm text-start text-gray-900">Image de profil</label>
+        <input
+          id="profile_image"
+          name="profile_image"
+          type="file"
+          accept="image/*"
+          onChange={(e) => setFormData({ ...formData, profile_image: e.target.files[0] })}
+          className="flex items-center w-full px-5 py-4 mb-4 text-sm font-medium outline-none focus:bg-gray-400 placeholder:text-gray-700 bg-gray-200 text-gray-900 rounded-2xl"
+        />
+
+        <button type="submit" className="w-full px-6 py-5 mb-5 text-sm font-bold leading-none text-white transition duration-300 rounded-2xl hover:bg-black focus:ring-4 focus:ring-black bg-black">Sign Up</button>
         <p className="text-sm leading-relaxed text-gray-900">Already have an account? <a href="/" className="font-bold text-gray-700">Sign In</a></p>
       </form>
 
