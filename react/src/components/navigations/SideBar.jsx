@@ -198,7 +198,7 @@ export function Sidebar({ user, onLogout }) {
                 <ListItemPrefix>
                   <UserCircleIcon className="h-6 w-6" />
                 </ListItemPrefix>
-                <Typography className="text-lg">Demandes d'amis</Typography>
+                <Typography className="text-lg">Mes amis</Typography>
                 {receivedRequests.length > 0 && (
                   <ListItemSuffix>
                     <Chip value={receivedRequests.length} size="sm" variant="ghost" className="rounded-full text-red-600" />
