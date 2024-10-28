@@ -18,6 +18,12 @@ const Home = () => {
     const navigate = useNavigate();
     const [user, setUser] = useState(null);
     const [requestCount, setRequestCount] = useState(0); // État pour le nombre de demandes d'amis
+    const [sentRequests, setSentRequests] = useState([]);
+
+    useEffect(() => {
+        const storedRequests = JSON.parse(localStorage.getItem('sentRequests')) || [];
+        setSentRequests(storedRequests);
+    }, []);
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -54,20 +60,18 @@ const Home = () => {
 
         fetchUsers();
     }, []);
-
+    const [sendingRequest, setSendingRequest] = useState(null);
     const sendFriendRequest = async (friendId) => {
         const isAlreadyFriend = friends.some(friend => friend.id === friendId);
-        const hasPendingRequest = receivedRequests.some(request => request.sender_id === friendId);
+        const hasPendingRequest = sentRequests.includes(friendId);
 
         if (isAlreadyFriend) {
             alert("Vous êtes déjà amis avec cet utilisateur.");
             return;
         }
 
-        if (hasPendingRequest) {
-            alert("Vous avez déjà une demande en attente avec cet utilisateur.");
-            return;
-        }
+        // Marquer la demande comme en cours d'envoi
+        setSendingRequest(friendId);
 
         try {
             await axios.post(`http://localhost:8000/api/friend-requests`, {
@@ -77,11 +81,21 @@ const Home = () => {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
                 }
             });
+
+            const updatedRequests = [...sentRequests, friendId];
+            setSentRequests(updatedRequests);
+            localStorage.setItem('sentRequests', JSON.stringify(updatedRequests));
             fetchFriendRequests();
         } catch (error) {
             console.error("Erreur lors de l'envoi de la demande d'amis:", error);
+        } finally {
+            // Réinitialiser le statut d'envoi après une seconde pour simuler le retour à l'état normal
+            setTimeout(() => {
+                setSendingRequest(null);
+            }, 2000);
         }
     };
+
 
     const fetchFriendRequests = async () => {
         try {
@@ -127,12 +141,13 @@ const Home = () => {
         if (searchTerm.trim() === "") {
             setFilteredUsers([]);
         } else {
-            const results = users.filter(user =>
-                user.email.toLowerCase().includes(searchTerm.toLowerCase())
+            const results = users.filter(userItem =>
+                userItem.email.toLowerCase().includes(searchTerm.toLowerCase()) && userItem.id !== user.id // Exclure l'utilisateur connecté
             );
             setFilteredUsers(results);
         }
-    }, [searchTerm, users]);
+    }, [searchTerm, users, user]); // Ajoute `user` comme dépendance
+
 
     const handleLogout = async () => {
         try {
@@ -178,22 +193,32 @@ const Home = () => {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
                 }
             });
+
+            // Mettre à jour sentRequests pour enlever la demande rejetée
+            setSentRequests((prevRequests) => prevRequests.filter(request => request !== requestId));
+
             fetchFriendRequests();
         } catch (error) {
             console.error("Erreur lors du refus de la demande:", error);
         }
     };
 
+
+    const navigateToUserProfile = (userId) => {
+        navigate(`/profile-user/${userId}`);
+    };
+
     return (
         <div className="flex flex-col min-h-screen">
             <div className="flex flex-1">
-                <div className="hidden lg:block lg:w-1/5 bg-gray-100">
-                    <Sidebar user={user} onLogout={handleLogout} />
-                </div>
-                <div className="flex-1 p-4 lg:w-4/5">
-                    <HomeCenter />
-                </div>
-            </div>
+    <div className="hidden lg:block  bg-gray-100">
+        <Sidebar user={user} onLogout={handleLogout} />
+    </div>
+    <div className="w-full">
+        <HomeCenter />
+    </div>
+</div>
+
 
             <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white shadow-md p-4 flex justify-around">
                 {loading ? (
@@ -230,7 +255,8 @@ const Home = () => {
                                     onClick={() => navigateToProfile(user.id)}
                                 />
                             ) : (
-                                <UserCircleIcon className="h-6 w-6 text-gray-500 cursor-pointer" />
+                                <UserCircleIcon className="h-6 w-6 text-gray-500 cursor-pointer"
+                                    onClick={() => navigateToProfile(user.id)} />
                             )
                         )}
                         <Cog6ToothIcon className="h-6 w-6 text-gray-500 cursor-pointer" />
@@ -261,39 +287,42 @@ const Home = () => {
                         />
                         <div className="max-h-60 overflow-y-auto">
                             {filteredUsers.length > 0 ? (
-                                filteredUsers.map((user) => (
-                                    <div key={user.id} className="p-2 border-b border-gray-200 flex items-center">
-                                        {user.profile_image ? (
-                                            <img
-                                                src={`http://localhost:8000/storage/${user.profile_image}`}
-                                                alt="Profile"
-                                                className="h-6 w-6 rounded-full cursor-pointer mr-2"
-                                                onClick={() => navigateToProfile(user.id)}
-                                            />
-                                        ) : (
-                                            <UserCircleIcon 
-                                                className="h-8 w-8 text-gray-500 rounded-full mr-2 cursor-pointer"
-                                                onClick={() => navigateToProfile(user.id)}
-                                            />
-                                        )}
-                                        <span className="flex-grow cursor-pointer" onClick={() => navigateToProfile(user.id)}>
-                                            {user.email}
-                                        </span>
-                                        <button
-                                            onClick={() => sendFriendRequest(user.id)}
-                                            className="bg-blue-500 text-white rounded px-2 py-1 text-sm"
-                                        >
-                                            Ajouter
-                                        </button>
-                                    </div>
-                                ))
+                                filteredUsers.map((user) => {
+                                    const isAlreadyFriend = friends.some(friend => friend.id === user.id);
+                                    const hasPendingRequest = sentRequests.includes(user.id);
+                                    const isSending = sendingRequest === user.id; // Vérifier si une demande est en cours pour cet utilisateur
+
+                                    return (
+                                        <div key={user.id} className="flex justify-between items-center mb-2">
+                                            <span>{user.email}</span>
+                                            <div>
+                                                {isAlreadyFriend ? (
+                                                    <p className="text-green-500">Déjà amis</p>
+                                                ) : isSending ? (
+                                                    <button className="bg-gray-300 text-black px-4 py-2 rounded">
+                                                        Demande envoyée...
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        className="bg-blue-500 text-white px-4 py-2 rounded"
+                                                        onClick={() => sendFriendRequest(user.id)}
+                                                    >
+                                                        Ajouter
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })
                             ) : (
                                 <p>Aucun utilisateur trouvé.</p>
                             )}
+
+
                         </div>
                         <button
+                            className="bg-red-500 text-white px-4 py-2 rounded mt-4"
                             onClick={() => setShowUserList(false)}
-                            className="mt-4 bg-red-500 text-white py-2 px-4 rounded"
                         >
                             Fermer
                         </button>
@@ -311,6 +340,7 @@ const Home = () => {
                             receivedRequests.map(request => (
                                 <div key={request.id} className="flex items-center justify-between p-2 border-b border-gray-200">
                                     {/* Vérifie si request.sender est valide */}
+
                                     {request.sender ? (
                                         <>
                                             {request.sender.profile_image ? (
@@ -365,7 +395,7 @@ const Home = () => {
                         )}
                         <button
                             onClick={() => setShowFriendRequestPopup(false)}
-                            className="mt-4 bg-gray-300 text-gray-700 rounded px-4 py-2"
+                            className="mt-4 bg-red-500 text-white rounded px-4 py-2"
                         >
                             Fermer
                         </button>

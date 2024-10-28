@@ -356,8 +356,8 @@ const UserProfile = () => {
             {isModalOpen && (
                 <div className="fixed inset-0 flex items-center justify-center z-50">
                     <div className="bg-white p-6 rounded-lg shadow-lg w-11/12 max-w-md">
-                        <h2 className="text-xl font-bold mb-4">{selectedPost.title}</h2>
-                        <CommentSection postId={selectedPost.id} title={selectedPost.title} />
+                        <h3 className="text-xl font-bold mb-4">{selectedPost.title}</h3>
+                        <CommentSection postId={selectedPost.id}  />
                         <button onClick={closeModal} className="mt-4 bg-red-500 text-white py-2 px-4 rounded">
                             Fermer
                         </button>

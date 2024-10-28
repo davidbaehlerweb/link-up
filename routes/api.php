@@ -16,9 +16,9 @@ Route::middleware('auth:sanctum')->post('/logout', [AuthController::class, 'logo
 Route::middleware('auth:sanctum')->get('/user', [AuthController::class, 'getUser']);
 
 
-    Route::get('/posts', [PostController::class, 'index']);
-    Route::post('/posts', [PostController::class, 'store']);
-    // Ajoutez d'autres routes protégées ici
+Route::get('/posts', [PostController::class, 'index']);
+Route::post('/posts', [PostController::class, 'store']);
+    
 
 
 

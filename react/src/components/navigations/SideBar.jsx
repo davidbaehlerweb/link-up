@@ -32,11 +32,12 @@ export function Sidebar({ user, onLogout }) {
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [receivedRequests, setReceivedRequests] = useState([]);
   const [friends, setFriends] = useState([]);
+  const [sentRequests, setSentRequests] = useState([]);
 
   const navigate = useNavigate();
 
   const navigateToProfile = () => {
-    if (user && user.id) {
+    if (user?.id) {
       navigate(`/profile/${user.id}`);
     }
   };
@@ -45,46 +46,57 @@ export function Sidebar({ user, onLogout }) {
     navigate(`/profile-user/${userId}`);
   };
 
+  useEffect(() => {
+    const storedRequests = JSON.parse(localStorage.getItem('sentRequests')) || [];
+    setSentRequests(storedRequests);
+}, []);
+
+  
+
+  const [sendingRequest, setSendingRequest] = useState(null);
   const sendFriendRequest = async (friendId) => {
-    const isAlreadyFriend = friends.some(friend => friend.id === friendId);
-    const hasPendingRequest = receivedRequests.some(request => request.sender_id === friendId);
+      const isAlreadyFriend = friends.some(friend => friend.id === friendId);
+      const hasPendingRequest = sentRequests.includes(friendId);
 
-    if (isAlreadyFriend) {
-      alert("Vous êtes déjà amis avec cet utilisateur.");
-      return;
-    }
+      if (isAlreadyFriend) {
+          alert("Vous êtes déjà amis avec cet utilisateur.");
+          return;
+      }
 
-    if (hasPendingRequest) {
-      alert("Vous avez déjà une demande en attente avec cet utilisateur.");
-      return;
-    }
+      // Marquer la demande comme en cours d'envoi
+      setSendingRequest(friendId);
 
-    try {
-      await axios.post(`http://localhost:8000/api/friend-requests`, {
-        friend_id: friendId,
-      }, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      fetchReceivedRequests();
-    } catch (error) {
-      console.error("Erreur lors de l'envoi de la demande d'amis:", error);
-    }
+      try {
+          await axios.post(`http://localhost:8000/api/friend-requests`, {
+              friend_id: friendId,
+          }, {
+              headers: {
+                  'Authorization': `Bearer ${localStorage.getItem('token')}`
+              }
+          });
+
+          const updatedRequests = [...sentRequests, friendId];
+          setSentRequests(updatedRequests);
+          localStorage.setItem('sentRequests', JSON.stringify(updatedRequests));
+          fetchFriendRequests();
+      } catch (error) {
+          console.error("Erreur lors de l'envoi de la demande d'amis:", error);
+      } finally {
+          // Réinitialiser le statut d'envoi après une seconde pour simuler le retour à l'état normal
+          setTimeout(() => {
+              setSendingRequest(null);
+          }, 2000);
+      }
   };
 
   const fetchReceivedRequests = async () => {
     try {
       const response = await axios.get(`http://localhost:8000/api/friend-requests/retrieve`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       const friendRequestsWithUserData = await Promise.all(response.data.map(async (request) => {
         const userResponse = await axios.get(`http://localhost:8000/api/users/${request.sender_id}`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
         });
         return { ...request, user: userResponse.data };
       }));
@@ -97,9 +109,7 @@ export function Sidebar({ user, onLogout }) {
   const fetchFriends = async () => {
     try {
       const response = await axios.get(`http://localhost:8000/api/friends`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       setFriends(response.data);
     } catch (error) {
@@ -111,9 +121,7 @@ export function Sidebar({ user, onLogout }) {
     const fetchUsers = async () => {
       try {
         const response = await axios.get('http://localhost:8000/api/users', {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
         });
         setUsers(response.data);
       } catch (error) {
@@ -130,22 +138,19 @@ export function Sidebar({ user, onLogout }) {
 
   useEffect(() => {
     if (searchTerm.trim() === "") {
-      setFilteredUsers([]);
+        setFilteredUsers([]);
     } else {
-      const results = users.filter(user =>
-        user.email.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-      results.sort((a, b) => a.email[0].localeCompare(b.email[0]));
-      setFilteredUsers(results);
+        const results = users.filter(userItem =>
+            userItem.email.toLowerCase().includes(searchTerm.toLowerCase()) && userItem.id !== user.id // Exclure l'utilisateur connecté
+        );
+        setFilteredUsers(results);
     }
-  }, [searchTerm, users]);
+}, [searchTerm, users, user]);
 
   const handleAcceptRequest = async (requestId) => {
     try {
       await axios.post(`http://localhost:8000/api/friend-requests/${requestId}/accept`, {}, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       fetchReceivedRequests();
       fetchFriends();
@@ -153,13 +158,12 @@ export function Sidebar({ user, onLogout }) {
       console.error("Erreur lors de l'acceptation de la demande:", error);
     }
   };
+  
 
   const handleRejectRequest = async (requestId) => {
     try {
       await axios.post(`http://localhost:8000/api/friend-requests/${requestId}/reject`, {}, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       fetchReceivedRequests();
     } catch (error) {
@@ -167,14 +171,14 @@ export function Sidebar({ user, onLogout }) {
     }
   };
 
+  
+
   return (
     <>
       <Card className="fixed top-0 left-0 h-full max-w-[20rem] p-4 shadow-xl hidden lg:block">
         <div className="mb-5 flex items-center gap-4 p-4">
           <img src={Logo} alt="Logo" className="h-12 w-12 mr-2" />
-          <Typography className="font-bold" variant="h5" color="blue-gray">
-            LinkUp
-          </Typography>
+          <Typography className="font-bold" variant="h5" color="blue-gray">LinkUp</Typography>
         </div>
 
         <List className="flex-grow overflow-y-auto">
@@ -276,40 +280,41 @@ export function Sidebar({ user, onLogout }) {
               className="border border-gray-300 rounded p-2 w-full mb-4"
             />
             <div className="max-h-60 overflow-y-auto">
-              {filteredUsers.length > 0 ? (
-                filteredUsers.map((user) => (
-                  <div key={user.id} className="p-2 border-b border-gray-200 flex items-center">
-                    {user.profile_image ? (
-                      <img
-                        src={`http://localhost:8000/storage/${user.profile_image}`}
-                        alt="Profile"
-                        className="h-6 w-6 rounded-full cursor-pointer mr-2"
-                        onClick={() => navigateToUserProfile(user.id)}
-                      />
-                    ) : (
-                      <UserCircleIcon 
-                        className="h-8 w-8 text-gray-500 rounded-full mr-2 cursor-pointer"
-                        onClick={() => navigateToUserProfile(user.id)}
-                      />
-                    )}
-                    <span className="flex-grow cursor-pointer" onClick={() => navigateToUserProfile(user.id)}>
-                      {user.email}
-                    </span>
-                    <button
-                      onClick={() => sendFriendRequest(user.id)}
-                      className="bg-blue-500 text-white rounded px-2 py-1 text-sm"
-                    >
-                      Ajouter
-                    </button>
-                  </div>
-                ))
-              ) : (
-                <p>Aucun utilisateur trouvé.</p>
-              )}
+            {filteredUsers.length > 0 ? (
+                                filteredUsers.map((user) => {
+                                    const isAlreadyFriend = friends.some(friend => friend.id === user.id);
+                                    const hasPendingRequest = sentRequests.includes(user.id);
+                                    const isSending = sendingRequest === user.id; // Vérifier si une demande est en cours pour cet utilisateur
+
+                                    return (
+                                        <div key={user.id} className="flex justify-between items-center mb-2">
+                                            <span>{user.email}</span>
+                                            <div>
+                                                {isAlreadyFriend ? (
+                                                    <p className="text-green-500">Déjà amis</p>
+                                                ) : isSending ? (
+                                                    <button className="bg-gray-300 text-black px-4 py-2 rounded">
+                                                        Demande envoyée...
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        className="bg-blue-500 text-white px-4 py-2 rounded"
+                                                        onClick={() => sendFriendRequest(user.id)}
+                                                    >
+                                                        Ajouter
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            ) : (
+                                <p>Aucun utilisateur trouvé.</p>
+                            )}
             </div>
             <button
               onClick={() => setShowUserList(false)}
-              className="mt-4 bg-gray-300 text-gray-700 rounded px-4 py-2"
+              className="mt-4 bg-red-600 text-white rounded px-4 py-2"
             >
               Fermer
             </button>
@@ -380,7 +385,7 @@ export function Sidebar({ user, onLogout }) {
             )}
             <button
               onClick={() => setShowFriendRequestPopup(false)}
-              className="mt-4 bg-gray-300 text-gray-700 rounded px-4 py-2"
+              className="mt-4 bg-red-600 text-white rounded px-4 py-2"
             >
               Fermer
             </button>
