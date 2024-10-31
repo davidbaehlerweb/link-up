@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Post;
 use App\Models\User;
 use Auth;
 use DB;
@@ -334,7 +335,7 @@ public function getFriends(Request $request)
 
     $friends = DB::table('friends')
         ->join('users', 'friends.friend_id', '=', 'users.id')
-        ->select('users.id', 'users.email', 'users.profile_image')
+        ->select('users.id','users.name', 'users.email', 'users.profile_image')
         ->where('friends.user_id', $user->id)
         ->get();
 

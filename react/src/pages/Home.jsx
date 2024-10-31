@@ -24,6 +24,7 @@ const Home = () => {
         const storedRequests = JSON.parse(localStorage.getItem('sentRequests')) || [];
         setSentRequests(storedRequests);
     }, []);
+    
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -207,6 +208,11 @@ const Home = () => {
     const navigateToUserProfile = (userId) => {
         navigate(`/profile-user/${userId}`);
     };
+    const navigateToChat = () => {
+    if (user?.id) {
+      navigate(`/chat`);
+    }
+  };
 
     return (
         <div className="flex flex-col min-h-screen">
@@ -245,7 +251,7 @@ const Home = () => {
                             className="h-6 w-6 text-gray-500 cursor-pointer"
                             onClick={() => setShowUserList(true)}
                         />
-                        <InboxIcon className="h-6 w-6" />
+                        <InboxIcon className="h-6 w-6" onClick={navigateToChat}/>
                         {user && (
                             user.profile_image ? (
                                 <img

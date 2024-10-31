@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { PaperClipIcon, UserCircleIcon, ChatBubbleOvalLeftEllipsisIcon } from '@heroicons/react/24/solid'; 
 import axios from 'axios';
+import { FaFileImage, FaImage } from 'react-icons/fa';
 
 // URL de base pour les requêtes API
 const API_URL = 'http://localhost:8000/api';
@@ -143,23 +144,23 @@ const PostInput = () => {
         setIsModalOpen(false);
         setSelectedPost(null);
     };
+    
 
     const fetchPosts = async () => {
         try {
-            const response = await axios.get(`${API_URL}/posts`);
-            console.log(response.data); // Vérifiez ce que vous recevez ici
-            if (Array.isArray(response.data)) {
-                const postsWithLikes = response.data.map(post => ({
-                    ...post,
-                    liked: post.likes ? post.likes.some(like => like.user_id === localStorage.getItem('userId')) : false,
-                    likeCount: post.likes ? post.likes.length : 0
-                }));
-                setPosts(postsWithLikes);
-            } else {
-                console.error('La réponse de l\'API n\'est pas un tableau', response.data);
-            }
+            const response = await axios.get(`${API_URL}/posts`, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`,
+                },
+            });
+            const postsWithLikes = response.data.map(post => ({
+                ...post,
+                liked: post.likes.some(like => like.user_id === localStorage.getItem('userId')),
+                likeCount: post.likes.length,
+            }));
+            setPosts(postsWithLikes);
         } catch (error) {
-            console.error('Erreur lors de la récupération des posts:', error.response ? error.response.data : error.message);
+            console.error("Erreur lors de la récupération des posts :", error);
         }
     };
 
@@ -180,7 +181,7 @@ const PostInput = () => {
 
                     <div className="flex items-center mb-4">
                         <label className="flex items-center cursor-pointer">
-                            <PaperClipIcon className="h-6 w-6 text-gray-500 mr-2" />
+                            <FaImage className="h-6 w-6 text-gray-500 mr-2" />
                             <input
                                 type="file"
                                 accept="image/*, video/*"
@@ -203,14 +204,15 @@ const PostInput = () => {
                     </button>
                 </form>
 
-                <div className="mt-6 w-full">
+                <div className="mt-6 w-full mb-20">
                     {posts.length === 0 ? (
                         <div>Aucun post disponible.</div>
                     ) : (
                         posts.map((post) => (
-                            <div key={post.id} className="mb-4 p-4 border border-gray-300 rounded-lg w-full max-w-sm mx-auto"> 
+                            <div key={post.id} className="mb-6 p-4 border border-gray-300 rounded-lg w-full max-w-sm mx-auto"> 
                                 <div className="flex items-center mb-2">
                                     {console.log('posts',post.user)}
+                                    {console.log('image: ',post.media_path)}
                                     {post.user?.profile_image ? (
                                         <img 
                                             src={`http://localhost:8000/storage/${post.user.profile_image}`} 
@@ -228,12 +230,12 @@ const PostInput = () => {
                                         {post.media_path.endsWith('.mp4') || post.media_path.endsWith('.mov') ? (
                                             <video 
                                                 controls 
-                                                src={`http://localhost:8000/storage/${post.media_path}`} 
+                                                src={post.media_path} 
                                                 className="mb-2 rounded mx-auto max-w-full"
                                             />
                                         ) : (
                                             <img 
-                                                src={`http://localhost:8000/storage/${post.media_path}`} 
+                                                src={post.media_path} 
                                                 alt="Média du post" 
                                                 className="mb-2 rounded mx-auto max-w-full"
                                             />
@@ -266,7 +268,7 @@ const PostInput = () => {
                 {isModalOpen && (
                     <div className="fixed inset-0 flex items-center justify-center z-50">
                         <div className="bg-white p-6 rounded-lg shadow-lg w-11/12 max-w-md">
-                            <h2 className="text-xl font-bold mb-4">{selectedPost.title}</h2>
+                            <h2 className="text-xl font-bold mb-4"></h2>
                             <CommentSection postId={selectedPost.id} title={selectedPost.title} />
                             <button onClick={closeModal} className="mt-4 bg-red-500 text-white py-2 px-4 rounded">
                                 Fermer

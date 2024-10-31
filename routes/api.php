@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CommentController;
+use App\Http\Controllers\MessageController;
 use App\Http\Controllers\PostController;
 use Illuminate\Support\Facades\Route;
 
@@ -16,7 +17,8 @@ Route::middleware('auth:sanctum')->post('/logout', [AuthController::class, 'logo
 Route::middleware('auth:sanctum')->get('/user', [AuthController::class, 'getUser']);
 
 
-Route::get('/posts', [PostController::class, 'index']);
+Route::get('/posts', [PostController::class, 'index'])->middleware('auth:sanctum');
+
 Route::post('/posts', [PostController::class, 'store']);
     
 
@@ -26,6 +28,10 @@ Route::post('/comments', [CommentController::class, 'store']);
 Route::get('/posts/{postId}/comments', [CommentController::class, 'index']);
 
 Route::post('/posts/{id}/like', [PostController::class, 'likePost']);
+Route::delete('/posts/{id}/delete-image', [PostController::class, 'deleteImage']);
+Route::delete('/posts/{id}', [PostController::class, 'destroy'])->middleware('auth:sanctum');
+Route::middleware('auth:sanctum')->post('/posts/{id}/update', [PostController::class, 'update']);
+
 
 
 Route::middleware('auth:sanctum')->post('/comments/{commentId}/like', [CommentController::class, 'likeComment']);
@@ -58,3 +64,9 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 
+
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/messages', [MessageController::class, 'store']);
+    Route::get('/messages/{userId}', [MessageController::class, 'getMessages']);
+});

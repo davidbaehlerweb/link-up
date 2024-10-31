@@ -42,6 +42,18 @@ export function Sidebar({ user, onLogout }) {
     }
   };
 
+  const navigateToChat = () => {
+    if (user?.id) {
+      navigate(`/chat`);
+    }
+  };
+
+  const navigateToSeetings = () => {
+    if (user?.id) {
+      navigate(`/settings`);
+    }
+  };
+
   const navigateToUserProfile = (userId) => {
     navigate(`/profile-user/${userId}`);
   };
@@ -217,17 +229,17 @@ export function Sidebar({ user, onLogout }) {
                 <Typography className="text-lg">Ajouter des amis</Typography>
               </ListItem>
 
-              <ListItem className="mb-6">
+              <ListItem className="mb-6" onClick={navigateToChat}>
                 <ListItemPrefix>
                   <InboxIcon className="h-6 w-6" />
                 </ListItemPrefix>
-                <Typography className="text-lg">Messages</Typography>
+                <Typography  className="text-lg">Messages</Typography>
                 <ListItemSuffix>
                   <Chip value="14" size="sm" variant="ghost" className="rounded-full text-red-600" />
                 </ListItemSuffix>
               </ListItem>
 
-              <ListItem className="mb-6">
+              <ListItem className="mb-6" onClick={navigateToSeetings}>
                 <ListItemPrefix>
                   <Cog6ToothIcon className="h-6 w-6" />
                 </ListItemPrefix>

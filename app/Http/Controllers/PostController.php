@@ -42,33 +42,108 @@ class PostController extends Controller
 
 public function index(Request $request)
 {
-    // Vérifiez si l'utilisateur est authentifié
-    $userId = Auth::id();
+    $userId = Auth::id(); // ID de l'utilisateur authentifié
     if (!$userId) {
         return response()->json(['error' => 'Unauthorized'], 401);
     }
 
-    Log::info('User ID: ' . $userId);
-
-    // Récupérer les IDs des amis
+    // Récupération des amis
     $friendIds = DB::table('friends')
         ->where('user_id', $userId)
         ->pluck('friend_id')
         ->toArray();
 
-    // Ajouter l'ID de l'utilisateur lui-même à la liste
+    // Inclure l'ID de l'utilisateur lui-même
     $friendIds[] = $userId;
 
-    // Récupérer les posts de l'utilisateur et de ses amis
+    // Récupération des posts de l'utilisateur et des amis
     $posts = Post::with(['user', 'likes'])
         ->whereIn('user_id', $friendIds)
         ->orderBy('created_at', 'desc')
         ->get();
 
-    Log::info('Posts retrieved: ' . $posts->count());
-
     return response()->json($posts);
 }
+
+
+public function deleteImage($id)
+{
+    $post = Post::find($id);
+
+    if (!$post) {
+        return response()->json(['error' => 'Post not found'], 404);
+    }
+
+    // Supprimer le fichier du stockage
+    $mediaPath = str_replace(asset('storage/'), '', $post->media_path); // Récupérer le chemin relatif
+    \Storage::disk('public')->delete($mediaPath); // Suppression du fichier
+
+    // Mettre à jour le chemin de l'image à null dans le post
+    $post->media_path = null;
+    $post->save();
+
+    return response()->json(['message' => 'Image deleted successfully'], 200);
+}
+
+public function destroy($id)
+{
+    $post = Post::find($id);
+
+    if (!$post) {
+        return response()->json(['error' => 'Post not found'], 404);
+    }
+
+    // Supprimer le fichier média, si présent
+    if ($post->media_path) {
+        $mediaPath = str_replace(asset('storage/'), '', $post->media_path);
+        \Storage::disk('public')->delete($mediaPath);
+    }
+
+    // Supprimer les likes associés au post
+    $post->likes()->delete();
+
+    // Supprimer les commentaires associés au post (si nécessaire)
+    $post->comments()->delete();
+
+    // Supprimer le post
+    $post->delete();
+
+    return response()->json(['message' => 'Post deleted successfully'], 200);
+}
+
+public function update(Request $request, $id)
+{
+    Log::info("Données reçues pour la mise à jour du post :", $request->all());
+
+    $request->validate([
+        'title' => 'required|string|max:255',
+        'media_path' => 'nullable|file|mimes:jpg,jpeg,png,mp4,mov,avi,mkv,webp',
+    ]);
+
+    $post = Post::findOrFail($id);
+
+    $post->title = $request->input('title');
+
+    if ($request->hasFile('media_path')) {
+        if ($post->media_path) {
+            \Storage::disk('public')->delete(str_replace(asset('storage/'), '', $post->media_path));
+        }
+        $filePath = $request->file('media_path')->store('media', 'public');
+        $post->media_path = asset('storage/' . $filePath);
+    }
+
+    $post->save();
+
+    return response()->json($post, 200);
+}
+
+
+
+
+
+
+
+
 
 
 

@@ -13,6 +13,8 @@ class CreateFriendsTable extends Migration
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('friend_id')->constrained('users')->onDelete('cascade');
             $table->timestamps();
+            $table->foreign('sender_id')->references('id')->on('users')->onDelete('cascade');
+            $table->foreign('receiver_id')->references('id')->on('users')->onDelete('cascade');
         });
     }
 
