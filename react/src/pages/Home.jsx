@@ -172,6 +172,12 @@ const Home = () => {
             navigate(`/profile/${userId}`);
         }
     };
+    
+    const navigateToSettings = (userId) => {
+        if (userId) {
+            navigate('/settings');
+        }
+    };
 
     const handleAcceptRequest = async (requestId) => {
         try {
@@ -265,7 +271,7 @@ const Home = () => {
                                     onClick={() => navigateToProfile(user.id)} />
                             )
                         )}
-                        <Cog6ToothIcon className="h-6 w-6 text-gray-500 cursor-pointer" />
+                        <Cog6ToothIcon className="h-6 w-6 text-gray-500 cursor-pointer" onClick={navigateToSettings} />
                         <PowerIcon onClick={handleLogout} className="h-6 w-6 text-red-500 cursor-pointer" />
                     </>
                 )}

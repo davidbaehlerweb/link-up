@@ -6,8 +6,10 @@ use App\Models\Post;
 use App\Models\User;
 use Auth;
 use DB;
+use GuzzleHttp\Client;
 use Hash;
 use Illuminate\Http\Request;
+use Laravel\Socialite\Facades\Socialite;
 use Log;
 use Storage;
 use Validator;
@@ -50,6 +52,36 @@ class AuthController extends Controller
     }
     return response()->json(['error' => 'User not found'], 404);
 }
+
+public function updateUser(Request $request)
+{
+    $user = Auth::user();
+    if (!$user) {
+        return response()->json(['error' => 'Unauthorized'], 401);
+    }
+
+    $data = $request->only(['name', 'email', 'password']);
+    
+    if (isset($data['name'])) {
+        $request->validate(['name' => 'required|string|max:255']);
+        $user->name = $data['name'];
+    }
+
+    if (isset($data['email'])) {
+        $request->validate(['email' => 'required|string|email|max:255|unique:users,email,' . $user->id]);
+        $user->email = $data['email'];
+    }
+
+    if (isset($data['password'])) {
+        $request->validate(['password' => 'required|string|min:6|confirmed']);
+        $user->password = Hash::make($data['password']);
+    }
+
+    $user->save();
+
+    return response()->json(['message' => 'Utilisateur mis à jour avec succès', 'user' => $user], 200);
+}
+
 
 
     public function updateProfileImage(Request $request)
@@ -107,6 +139,101 @@ class AuthController extends Controller
 
         return response()->json(['error' => 'No image uploaded'], 400);
     }
+
+    public function deleteAccount(Request $request)
+{
+    $user = Auth::user(); // Récupérer l'utilisateur authentifié
+    if (!$user) {
+        return response()->json(['error' => 'Unauthorized'], 401);
+    }
+
+    DB::beginTransaction(); // Démarrer une transaction pour assurer la suppression complète
+
+    try {
+        // Supprimer les posts de l'utilisateur
+        Post::where('user_id', $user->id)->delete();
+
+        // Supprimer les demandes d'amis où l'utilisateur est le destinataire ou l'expéditeur
+        DB::table('friend_requests')->where('receiver_id', $user->id)->orWhere('sender_id', $user->id)->delete();
+
+        // Supprimer les relations d'amitié
+        DB::table('friends')->where('user_id', $user->id)->orWhere('friend_id', $user->id)->delete();
+
+        // Supprimer l'image de profil et l'image de fond si elles existent
+        if ($user->profile_image) {
+            Storage::disk('public')->delete($user->profile_image);
+        }
+        if ($user->image_fond) {
+            Storage::disk('public')->delete($user->image_fond);
+        }
+
+        // Supprimer l'utilisateur lui-même
+        $user->delete();
+
+        DB::commit(); // Valider la transaction
+
+        return response()->json(['message' => 'Compte supprimé avec succès'], 200);
+    } catch (\Exception $e) {
+        DB::rollBack(); // Annuler la transaction en cas d'erreur
+        Log::error("Erreur lors de la suppression du compte : " . $e->getMessage());
+        return response()->json(['error' => 'Erreur lors de la suppression du compte'], 500);
+    }
+}
+
+public function updateUserName(Request $request)
+{
+    $request->validate([
+        'name' => 'required|string|max:255',
+    ]);
+
+    $user = Auth::user();
+
+    if (!$user) {
+        return response()->json(['error' => 'Unauthorized'], 401);
+    }
+
+    $user->name = $request->name;
+    $user->save();
+
+    return response()->json(['message' => 'Nom d\'utilisateur mis à jour avec succès', 'user' => $user], 200);
+}
+
+public function updateUserEmail(Request $request)
+{
+    $request->validate([
+        'email' => 'required|string|email|max:255|unique:users,email,' . Auth::id(),
+    ]);
+
+    $user = Auth::user();
+
+    if (!$user) {
+        return response()->json(['error' => 'Unauthorized'], 401);
+    }
+
+    $user->email = $request->email;
+    $user->save();
+
+    return response()->json(['message' => 'Adresse e-mail mise à jour avec succès', 'user' => $user], 200);
+}
+
+public function updateUserPassword(Request $request)
+{
+    $request->validate([
+        'password' => 'required|string|min:6|confirmed',
+    ]);
+
+    $user = Auth::user();
+
+    if (!$user) {
+        return response()->json(['error' => 'Unauthorized'], 401);
+    }
+
+    $user->password = Hash::make($request->password);
+    $user->save();
+
+    return response()->json(['message' => 'Mot de passe mis à jour avec succès'], 200);
+}
+
 
 
 
@@ -341,6 +468,33 @@ public function getFriends(Request $request)
 
     return response()->json($friends);
 }
+
+public function redirectToGoogle()
+{
+    $client = new Client(['verify' => false]); // désactive la vérification SSL
+    return Socialite::driver('google')->setHttpClient($client)->stateless()->redirect();
+}
+
+
+
+public function handleGoogleCallback()
+{
+    $googleUser = Socialite::driver('google')->stateless()->user();
+
+    $user = User::firstOrCreate(
+        ['email' => $googleUser->getEmail()],
+        [
+            'name' => $googleUser->getName(),
+            'google_id' => $googleUser->getId(),
+            'profile_image' => $googleUser->getAvatar(),
+        ]
+    );
+
+    $token = $user->createToken('YourAppName')->plainTextToken;
+
+    return response()->json(['token' => $token, 'user' => $user], 200);
+}
+
 
 
 

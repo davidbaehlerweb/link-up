@@ -5,6 +5,7 @@ use App\Http\Controllers\CommentController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\PostController;
 use Illuminate\Support\Facades\Route;
+use Laravel\Socialite\Facades\Socialite;
 
 
 
@@ -12,6 +13,11 @@ Route::post('register', [AuthController::class, 'register']);
 Route::post('check-email', [AuthController::class, 'checkEmail']);
 Route::post('login', [AuthController::class, 'login'])->name('api.login');
 Route::middleware('auth:sanctum')->post('/logout', [AuthController::class, 'logout']);
+Route::delete('/user/delete', [AuthController::class, 'deleteAccount'])->middleware('auth:sanctum');
+Route::middleware('auth:sanctum')->put('/user/update-name', [AuthController::class, 'updateUserName']);
+Route::middleware('auth:sanctum')->put('/user/update-email', [AuthController::class, 'updateUserEmail']);
+Route::middleware('auth:sanctum')->put('/user/update-password', [AuthController::class, 'updateUserPassword']);
+Route::middleware('auth:sanctum')->put('/user/update', [AuthController::class, 'updateUser']);
 
 
 Route::middleware('auth:sanctum')->get('/user', [AuthController::class, 'getUser']);
@@ -70,3 +76,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/messages', [MessageController::class, 'store']);
     Route::get('/messages/{userId}', [MessageController::class, 'getMessages']);
 });
+Route::middleware('auth:sanctum')->get('/messages/unread-count', [MessageController::class, 'getUnreadMessagesCount']);
+Route::middleware('auth:sanctum')->post('/messages/{userId}/mark-as-read', [MessageController::class, 'markMessagesAsRead']);
+
+
+
+Route::get('auth/google', [AuthController::class, 'redirectToGoogle']);
+Route::get('auth/google/callback', [AuthController::class, 'handleGoogleCallback']);
+Route::post('auth/google', [AuthController::class, 'handleGoogleCallback']);

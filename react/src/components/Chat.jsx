@@ -1,4 +1,3 @@
-// Chat.js
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -17,17 +16,14 @@ const Chat = () => {
   const [currentChat, setCurrentChat] = useState(null);
   const [user, setUser] = useState(null);
   const [friends, setFriends] = useState([]);
+  const [unreadMessages, setUnreadMessages] = useState(0); // Compteur de messages non lus
   const navigate = useNavigate();
 
   const startChat = (userId) => {
     setCurrentChat(userId);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    navigate("/");
-  };
-
+  // Récupération des informations de l'utilisateur connecté
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -42,6 +38,44 @@ const Chat = () => {
     fetchUser();
   }, []);
 
+  // Récupération du nombre de messages non lus
+  useEffect(() => {
+    const fetchUnreadMessages = async () => {
+      try {
+        const response = await axios.get("http://localhost:8000/api/messages/unread-count", {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        });
+        setUnreadMessages(response.data.unreadCount);
+      } catch (error) {
+        console.error("Erreur lors de la récupération des messages non lus :", error);
+      }
+    };
+
+    fetchUnreadMessages();
+    const interval = setInterval(fetchUnreadMessages, 5000); // Rafraîchissement toutes les 5 secondes
+
+    return () => clearInterval(interval); // Nettoyage de l'intervalle
+  }, []);
+
+  // Mise à jour du compteur de messages non lus lorsque l'utilisateur ouvre une conversation
+  useEffect(() => {
+    const markMessagesAsRead = async () => {
+      if (!currentChat) return;
+
+      try {
+        await axios.post(`http://localhost:8000/api/messages/${currentChat}/mark-as-read`, {}, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        });
+        setUnreadMessages(0); // Réinitialiser le compteur
+      } catch (error) {
+        console.error("Erreur lors de la mise à jour des messages :", error);
+      }
+    };
+
+    markMessagesAsRead();
+  }, [currentChat]);
+
+  // Récupération de la liste des amis
   useEffect(() => {
     const fetchFriends = async () => {
       try {
@@ -55,6 +89,11 @@ const Chat = () => {
     };
     fetchFriends();
   }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    navigate("/");
+  };
 
   return (
     <div className="flex h-screen">
@@ -77,12 +116,16 @@ const Chat = () => {
         <a href="/home">
           <HomeIcon className="h-6 w-6 text-gray-500 cursor-pointer" />
         </a>
-        <UserCircleIcon
-          className="h-6 w-6 text-gray-500 cursor-pointer"
-          onClick={() => {}}
-        />
+        <UserCircleIcon className="h-6 w-6 text-gray-500 cursor-pointer" />
         <PlusIcon className="h-6 w-6 text-gray-500 cursor-pointer" />
-        <InboxIcon className="h-6 w-6 text-gray-500 cursor-pointer" />
+        <div className="relative">
+          <InboxIcon className="h-6 w-6 text-gray-500 cursor-pointer" onClick={() => navigate('/chat')} />
+          {unreadMessages > 0 && (
+            <span className="absolute top-0 right-0 bg-red-500 text-white rounded-full text-xs px-1">
+              {unreadMessages}
+            </span>
+          )}
+        </div>
         {user && (
           user.profile_image ? (
             <img

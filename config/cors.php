@@ -2,7 +2,7 @@
 
 return [
 
-    'paths' => ['api/*', 'sanctum/csrf-cookie'],
+    'paths' => ['api/*', 'sanctum/csrf-cookie', 'auth/google', 'auth/google/callback'],
 'allowed_methods' => ['*'],
 'allowed_origins' => ['http://localhost:5173'], // Remplacez ceci par votre domaine front-end
 'allowed_origins_patterns' => [],
