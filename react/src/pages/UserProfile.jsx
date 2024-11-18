@@ -75,11 +75,16 @@ const UserProfile = () => {
     const [loading, setLoading] = useState(true);
     const [selectedPost, setSelectedPost] = useState(null);
     const [isEditing, setIsEditing] = useState(false);
-    const [showModal, setShowModal] = useState(false);
+    
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [showActionModal, setShowActionModal] = useState(false); // Nouveau état pour le modal de confirmation
     const [actionMessage, setActionMessage] = useState(''); 
 
+    
+
+    
+    
+    const [showModal, setShowModal] = useState(false);
     const [showUserList, setShowUserList] = useState(false);
     const [showFriendRequestPopup, setShowFriendRequestPopup] = useState(false);
     const [users, setUsers] = useState([]);
@@ -87,10 +92,10 @@ const UserProfile = () => {
     const [filteredUsers, setFilteredUsers] = useState([]);
     const [receivedRequests, setReceivedRequests] = useState([]);
     const [friends, setFriends] = useState([]);
-
+    
+    
     const [requestCount, setRequestCount] = useState(0); // État pour le nombre de demandes d'amis
     const [sentRequests, setSentRequests] = useState([]);
-
     const [profileImage, setProfileImage] = useState(null);
     const [backgroundImage, setBackgroundImage] = useState(null);
     const handleImageChange = (e, type) => {
@@ -103,6 +108,126 @@ const UserProfile = () => {
             handleImageUpload('background', file); // Appel immédiat pour enregistrer l'image dans la BDD
         }
     };
+
+    useEffect(() => {
+        const storedRequests = JSON.parse(localStorage.getItem('sentRequests')) || [];
+        setSentRequests(storedRequests);
+    }, []);
+    
+
+    useEffect(() => {
+        const fetchUser = async () => {
+            try {
+                const response = await axios.get('http://localhost:8000/api/user', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+                setUser(response.data.user);
+            } catch (err) {
+                console.error('Unable to fetch user data', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchUser();
+    }, []);
+
+    useEffect(() => {
+        const fetchUsers = async () => {
+            try {
+                const response = await axios.get('http://localhost:8000/api/users', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+                setUsers(response.data);
+            } catch (err) {
+                console.error('Unable to fetch users', err);
+            }
+        };
+
+        fetchUsers();
+    }, []);
+    
+
+
+    
+
+    
+
+    useEffect(() => {
+        fetchFriendRequests();
+        fetchFriends();
+    }, []);
+
+    useEffect(() => {
+        if (searchTerm.trim() === "") {
+            setFilteredUsers([]);
+        } else {
+            const results = users.filter(userItem =>
+                userItem.email.toLowerCase().includes(searchTerm.toLowerCase()) && userItem.id !== user.id // Exclure l'utilisateur connecté
+            );
+            setFilteredUsers(results);
+        }
+    }, [searchTerm, users, user]); // Ajoute `user` comme dépendance
+
+
+    
+
+    const navigateToProfile = (userId) => {
+        if (userId) {
+            navigate(`/profile/${userId}`);
+        }
+    };
+    
+    const navigateToSettings = (userId) => {
+        if (userId) {
+            navigate('/settings');
+        }
+    };
+
+    const handleAcceptRequest = async (requestId) => {
+        try {
+            await axios.post(`http://localhost:8000/api/friend-requests/${requestId}/accept`, {}, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            fetchFriendRequests();
+            fetchFriends();
+        } catch (error) {
+            console.error("Erreur lors de l'acceptation de la demande:", error);
+        }
+    };
+
+    const handleRejectRequest = async (requestId) => {
+        try {
+            await axios.post(`http://localhost:8000/api/friend-requests/${requestId}/reject`, {}, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+
+            // Mettre à jour sentRequests pour enlever la demande rejetée
+            setSentRequests((prevRequests) => prevRequests.filter(request => request !== requestId));
+
+            fetchFriendRequests();
+        } catch (error) {
+            console.error("Erreur lors du refus de la demande:", error);
+        }
+    };
+
+
+    const navigateToUserProfile = (userId) => {
+        navigate(`/profile-user/${userId}`);
+    };
+    const navigateToChat = () => {
+    if (user?.id) {
+      navigate(`/chat`);
+    }
+  };
 
 
 
@@ -579,7 +704,7 @@ const UserProfile = () => {
                             className="h-6 w-6 text-gray-500 cursor-pointer"
                             onClick={() => setShowUserList(true)}
                         />
-                        <InboxIcon className="h-6 w-6" />
+                        <InboxIcon className="h-6 w-6" onClick={navigateToChat}/>
                         {user && (
                             user.profile_image ? (
                                 <img
@@ -593,7 +718,7 @@ const UserProfile = () => {
                                     onClick={() => navigateToProfile(user.id)} />
                             )
                         )}
-                        <Cog6ToothIcon className="h-6 w-6 text-gray-500 cursor-pointer" />
+                        <Cog6ToothIcon className="h-6 w-6 text-gray-500 cursor-pointer" onClick={navigateToSettings} />
                         <PowerIcon onClick={handleLogout} className="h-6 w-6 text-red-500 cursor-pointer" />
                     </>
                 )}

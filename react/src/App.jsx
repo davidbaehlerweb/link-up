@@ -7,6 +7,9 @@ import UserProfile from './pages/UserProfile'
 import UserInfo from './pages/UserInfo'
 import Chat from './components/Chat'
 import Settings from './pages/Settings'
+import Test from './pages/DarkModeToggle'
+import DarkModeToggle from './pages/DarkModeToggle'
+import TestWrapper from './pages/TestWrapper'
 
 
 function App() {
@@ -22,6 +25,7 @@ function App() {
         <Route path="/profile-user/:userId" element={<UserInfo />} />
         <Route path='/chat' element={<Chat/>}/>
         <Route path='/settings' element={<Settings/>}/>
+        <Route path='/test' element={<TestWrapper/>}/>
       </Routes>
     </div>
   )

@@ -61,7 +61,7 @@ public function updateUser(Request $request)
     }
 
     $data = $request->only(['name', 'email', 'password']);
-    
+
     if (isset($data['name'])) {
         $request->validate(['name' => 'required|string|max:255']);
         $user->name = $data['name'];
@@ -72,7 +72,7 @@ public function updateUser(Request $request)
         $user->email = $data['email'];
     }
 
-    if (isset($data['password'])) {
+    if (!empty($data['password'])) {
         $request->validate(['password' => 'required|string|min:6|confirmed']);
         $user->password = Hash::make($data['password']);
     }
@@ -81,6 +81,7 @@ public function updateUser(Request $request)
 
     return response()->json(['message' => 'Utilisateur mis à jour avec succès', 'user' => $user], 200);
 }
+
 
 
 
