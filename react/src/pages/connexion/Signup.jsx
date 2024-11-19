@@ -58,7 +58,7 @@ const Signup = () => {
 
   const checkEmailExists = async (email) => {
     try {
-      const response = await axios.post('http://localhost:8000/api/check-email', { email });
+      const response = await axios.post('https://api.link-up-io.tech/api/check-email', { email });
       if (response.data.available === false) {
         setEmailError('Cet email existe déjà');
       } else {
@@ -95,7 +95,7 @@ const Signup = () => {
     }
 
     try {
-      const response = await axios.post('http://localhost:8000/api/register', data, {
+      const response = await axios.post('https://api.link-up-io.tech/api/register', data, {
         headers: {
           'Content-Type': 'multipart/form-data', // Important pour l'upload d'images
         },

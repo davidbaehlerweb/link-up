@@ -36,8 +36,8 @@ const Login = () => {
     e.preventDefault();
     setError(null);
     try {
-      await axios.get('http://localhost:8000/sanctum/csrf-cookie', { withCredentials: true });
-      const response = await axios.post('http://localhost:8000/api/login', formData, { withCredentials: true });
+      await axios.get('https://api.link-up-io.tech/sanctum/csrf-cookie', { withCredentials: true });
+      const response = await axios.post('https://api.link-up-io.tech/api/login', formData, { withCredentials: true });
 
       if (response.data.token) {
         localStorage.setItem('userId', response.data.user.id);

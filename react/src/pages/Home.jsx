@@ -29,7 +29,7 @@ const Home = () => {
     useEffect(() => {
         const fetchUser = async () => {
             try {
-                const response = await axios.get('http://localhost:8000/api/user', {
+                const response = await axios.get('https://api.laravel-react.com/api/user', {
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('token')}`
                     }
@@ -48,7 +48,7 @@ const Home = () => {
     useEffect(() => {
         const fetchUsers = async () => {
             try {
-                const response = await axios.get('http://localhost:8000/api/users', {
+                const response = await axios.get('https://api.laravel-react.com/api/users', {
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('token')}`
                     }
@@ -75,7 +75,7 @@ const Home = () => {
         setSendingRequest(friendId);
 
         try {
-            await axios.post(`http://localhost:8000/api/friend-requests`, {
+            await axios.post(`https://api.laravel-react.com/api/friend-requests`, {
                 friend_id: friendId,
             }, {
                 headers: {
@@ -261,7 +261,7 @@ const Home = () => {
                         {user && (
                             user.profile_image ? (
                                 <img
-                                    src={`http://localhost:8000/storage/${user.profile_image}`}
+                                    src={`https://api.laravel-react.com/storage/${user.profile_image}`}
                                     alt="Profile"
                                     className="h-6 w-6 rounded-full cursor-pointer"
                                     onClick={() => navigateToProfile(user.id)}
@@ -357,7 +357,7 @@ const Home = () => {
                                         <>
                                             {request.sender.profile_image ? (
                                                 <img
-                                                    src={`http://localhost:8000/storage/${request.sender.profile_image}`}
+                                                    src={`https://api.laravel-react.com/storage/${request.sender.profile_image}`}
                                                     alt="Profile"
                                                     className="h-8 w-8 rounded-full"
                                                 />
